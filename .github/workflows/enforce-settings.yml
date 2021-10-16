@@ -13,25 +13,25 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: buildpack-deps:20.04-scm #curlimages/curl
+    # container:
+    #   image: curlimages/curl
     steps:
       - uses: actions/checkout@v2
       - name: set repo settings
         run: >
-          curl
-          --fail-with-body
-          -X PATCH
-          -H "Accept: application/vnd.github.v3+json"
-          -H "Authorization: Bearer ${{ secrets.ENFORCE_SETTINGS_GITHUB_TOKEN }}"
+          wget
+          -O-
+          --method PATCH
+          --header "Accept: application/vnd.github.v3+json"
+          --header "Authorization: Bearer ${{ secrets.ENFORCE_SETTINGS_GITHUB_TOKEN }}"
+          --body-file .github/repo-settings.json
           https://api.github.com/repos/$GITHUB_REPOSITORY
-          -d @.github/repo-settings.json
       - name: set main branch settings
         run: >
-          curl
-          --fail-with-body
-          -X PUT
-          -H "Accept: application/vnd.github.v3+json"
-          -H "Authorization: Bearer ${{ secrets.ENFORCE_SETTINGS_GITHUB_TOKEN }}"
+          wget
+          -O-
+          --method PUT
+          --header "Accept: application/vnd.github.v3+json"
+          --header "Authorization: Bearer ${{ secrets.ENFORCE_SETTINGS_GITHUB_TOKEN }}"
+          --body-file .github/branch-protection.json
           https://api.github.com/repos/$GITHUB_REPOSITORY/branches/main/protection
-          -d @.github/branch-protection.json
