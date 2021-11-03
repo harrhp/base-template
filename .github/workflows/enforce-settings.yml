@@ -12,8 +12,13 @@ on:
       # when settings change
       - .github/settings/**
   schedule:
-    # every day at 6:18
+    # every day at 6:18 UTC
     - cron: "18 6 * * *"
+  # when another workflow completed
+  workflow_run:
+    workflows: ["Sync files from templates"]
+    branches: [main]
+    types: [completed]
 
 jobs:
   build:

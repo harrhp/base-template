@@ -1,0 +1,84 @@
+name: Sync files from templates
+
+on:
+  # every day at 06:13 UTC
+  schedule:
+    - cron: "13 6 * * *"
+
+  # Run when this file changes
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/sync-files.yml
+
+  # Run when manually triggered
+  workflow_dispatch:
+
+env:
+  MERGETO_BRANCH: main
+  PR_BRANCH: chore/sync-from-template
+  DEPENDENCIES_FILE: .github/templates/dependencies.txt
+
+jobs:
+  run-check:
+    name: check if need to run
+    runs-on: ubuntu-latest
+    outputs:
+      shouldRun: ${{ steps.check.outputs.shouldRun }}
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v2
+      - id: check
+        run: cat $REPO_DEPENDENCIES_FILE && echo "::set-output name=shouldRun::true" || true
+  sync-from-template:
+    needs: [run-check]
+    name: Sync files from templates
+    runs-on: ubuntu-latest
+    if: github.repository != 'harrhp/base-template' && needs.run-check.outputs.shouldRun == 'true'
+
+    steps:
+      - name: set env vars
+        run: echo "REPO_DEPENDENCIES_FILE=${{ github.repository }}/$DEPENDENCIES_FILE" >> $GITHUB_ENV
+      # Clone the target repository. Check out a branch
+      - name: Check out repo
+        uses: actions/checkout@v2
+        with:
+          path: ${{ github.repository }}
+          token: ${{ secrets.SYNC_FILES_GITHUB_TOKEN }}
+      - name: Create branch
+        run: |
+          git -C ${{ github.repository }} fetch origin $PR_BRANCH || true
+          git -C ${{ github.repository }} checkout -B $PR_BRANCH "remotes/origin/$PR_BRANCH" || \
+          git -C ${{ github.repository }} checkout -b $PR_BRANCH
+      # Clone the template repositories
+      - name: Check out template repositories
+        run: cat $REPO_DEPENDENCIES_FILE | xargs -I {} gh repo clone {} {}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Copy files from templates
+        run: |
+          for repoPath in $(cat $REPO_DEPENDENCIES_FILE)
+          do 
+            for filePath in $(find $repoPath ! -path "*/.git/*" -type f)
+            do
+              mkdir -p $(dirname ${filePath/$repoPath/${{ github.repository }}}); mv $filePath $_
+            done
+          done
+      # Push changes, if there are any
+      - name: Commit changes, if any
+        run: |
+          git -C ${{ github.repository }} config user.name ${{ github.actor }}
+          git -C ${{ github.repository }} add .
+          git -C ${{ github.repository }} diff-index --quiet HEAD || git -C ${{ github.repository }} commit -m "Sync from templates $(cat $REPO_DEPENDENCIES_FILE)"
+          git -C ${{ github.repository }} push origin $PR_BRANCH
+
+      # Create a pull request in the target repository
+      - name: Create pull request
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_USER: ${{ github.actor }}
+        run: |
+          pushd ${{ github.repository }}
+          gh pr create -H $PR_BRANCH -B $MERGETO_BRANCH -f
+          popd
