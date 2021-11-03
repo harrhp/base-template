@@ -31,7 +31,7 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v2
       - id: check
-        run: cat $REPO_DEPENDENCIES_FILE && echo "::set-output name=shouldRun::true" || true
+        run: cat $DEPENDENCIES_FILE && echo "::set-output name=shouldRun::true" || true
   sync-from-template:
     needs: [run-check]
     name: Sync files from templates
