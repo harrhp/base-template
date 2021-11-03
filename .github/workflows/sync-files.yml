@@ -78,7 +78,7 @@ jobs:
           git -C ${{ github.repository }} config user.name ${{ github.actor }}
           git -C ${{ github.repository }} add .
           git -C ${{ github.repository }} commit -m "Sync from templates $(cat $REPO_DEPENDENCIES_FILE)"
-          git -C ${{ github.repository }} push origin $PR_BRANCH
+          git -C ${{ github.repository }} push origin $PR_BRANCH --force
 
       # Create a pull request in the target repository
       - name: Create pull request
