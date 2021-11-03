@@ -83,12 +83,12 @@ jobs:
           git -C ${{ github.repository }} push origin $PR_BRANCH --force
 
       # Create a pull request in the target repository
-      - name: Create pull request
+      - name: Create pull request if not exists
         if: steps.checkChanges.outputs.hasChanges == 'true'
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_USER: ${{ github.actor }}
         run: |
           pushd ${{ github.repository }}
-          gh pr create -H $PR_BRANCH -B $MERGETO_BRANCH -f
+          gh pr diff $PR_BRANCH || gh pr create -H $PR_BRANCH -B $MERGETO_BRANCH -f
           popd
