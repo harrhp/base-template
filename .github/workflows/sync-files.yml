@@ -11,6 +11,7 @@ on:
       - main
     paths:
       - .github/workflows/sync-files.yml
+      - .github/templates/dependencies.txt
 
   # Run when manually triggered
   workflow_dispatch:
