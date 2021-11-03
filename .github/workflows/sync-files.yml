@@ -71,6 +71,7 @@ jobs:
           changes=$(git -C ${{ github.repository }} status --porcelain)
           && [ -n "$changes" ]
           && echo "::set-output name=hasChanges::true"
+          || true
 
       - name: Commit and push changes
         if: steps.checkChanges.outputs.hasChanges == 'true'
