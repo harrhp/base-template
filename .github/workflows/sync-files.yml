@@ -66,16 +66,23 @@ jobs:
               mkdir -p $(dirname ${filePath/$repoPath/${{ github.repository }}}); mv $filePath $_
             done
           done
-      # Push changes, if there are any
-      - name: Commit changes, if any
+      - id: checkChanges
+        run: >
+          changes=$(git -C ${{ github.repository }} status --porcelain)
+          && [ -n "$changes" ]
+          && echo "::set-output name=hasChanges::true"
+
+      - name: Commit and push changes
+        if: steps.checkChanges.outputs.hasChanges == 'true'
         run: |
           git -C ${{ github.repository }} config user.name ${{ github.actor }}
           git -C ${{ github.repository }} add .
-          git -C ${{ github.repository }} diff-index --quiet HEAD || git -C ${{ github.repository }} commit -m "Sync from templates $(cat $REPO_DEPENDENCIES_FILE)"
+          git -C ${{ github.repository }} commit -m "Sync from templates $(cat $REPO_DEPENDENCIES_FILE)"
           git -C ${{ github.repository }} push origin $PR_BRANCH
 
       # Create a pull request in the target repository
       - name: Create pull request
+        if: steps.checkChanges.outputs.hasChanges == 'true'
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_USER: ${{ github.actor }}
